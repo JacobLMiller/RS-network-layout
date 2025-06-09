@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>D3 Network Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      box-sizing: border-box;
+      font-family: sans-serif;
+    }
+
+    .top-bar {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1em;
+      padding: 1em;
+      background-color: #f9f9f9;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .layout {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 1vh;
+      height: calc(100vh - 70px); /* account for top bar */
+      padding: 1vh;
+    }
+
+    .main-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .main-svg {
+      width: 95vh;
+      height: 95vh;
+      border: 1px solid #ccc;
+    }
+
+    .side-svgs {
+      display: flex;
+      flex-direction: column;
+      gap: 1vh;
+    }
+
+    .side-svgs svg {
+      width: 47.5vh;
+      height: 47.5vh;
+      border: 1px solid #ccc;
+    }
+
+    .view-label {
+      text-align: center;
+      font-size: 1em;
+      margin-top: 0.3em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <label for="dataset-select">Dataset:</label>
+    <select id="dataset-select">
+      <option value="dagstuhl">dagstuhl</option>
+      <option value="InfoVis_graph">InfoVis_graph</option>
+      <option value="MC3_VAST2023">MC3_VAST2023</option>
+      <option value="SciVis_graph">SciVis_graph</option>
+      <option value="VAST_graph">VAST_graph</option>
+      <option value="VisPub_2015-19_graph">VisPub_2015-19_graph</option>
+      <option value="VisPub_2020-24_graph">VisPub_2020-24_graph</option>
+      <option value="VisPub_graph">VisPub_graph</option>
+    </select>
+
+    <label for="file-select">File:</label>
+    <select id="file-select">
+      <option value="Poster Method.json">Poster Method</option>
+      <option value="Two Layer + Procrustes Alignment (Paper Proxy).json">Two Layer + Procrustes Alignment (Paper Proxy)</option>
+    </select>
+  </div>
+
+  <div class="layout">
+    <div class="main-view">
+      <svg id="main" class="main-svg"></svg>
+    </div>
+    <div class="side-svgs">
+      <div>
+        <svg id="rich"></svg>
+      </div>
+      <div>
+        <svg id="sparse"></svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const methods = [
+          'Union_FR.json',
+          'Union_UMAP.json',
+          'Independent_SA.json',
+          'Independent_RA.json',
+          'Semantic.json'
+    ];
+    const filesByDataset = {
+      "dagstuhl": methods,
+      "InfoVis_graph": methods,
+      "MC3_VAST2023": methods,
+      "SciVis_graph": methods,
+      "VAST_graph": methods,
+      "VisPub_2015-19_graph": methods,
+      "VisPub_2020-24_graph": methods,
+      "VisPub_graph": methods
+    };
+
+    document.getElementById('dataset-select').addEventListener('change', function () {
+      const dataset = this.value;
+      const fileSelect = document.getElementById('file-select');
+      fileSelect.innerHTML = '';
+      filesByDataset[dataset].forEach(file => {
+        const option = document.createElement('option');
+        option.value = file;
+        option.textContent = file.replace('.json', '');
+        fileSelect.appendChild(option);
+      });
+      update();
+    });
+
+    document.getElementById('file-select').addEventListener('change', update);
+
+    function update() {
+      const dataset = document.getElementById('dataset-select').value;
+      const file = document.getElementById('file-select').value;
+      const path = `outputs/${dataset}/${file}`;
+      loadData(path);
+    }
+
+    function loadData(path) {
+      console.log(path);
+      d3.json(path).then(data => {
+        const nodes = data.nodes;
+        const edges = data.links;
+
+        edges.forEach(e => {
+          e.source = nodes.find(n => n.id === e.source);
+          e.target = nodes.find(n => n.id === e.target);
+        });
+
+        const rich_nodes = nodes.filter(n => n.type === "rich");
+        const sparse_nodes = nodes.filter(n => n.type !== "rich");
+
+        renderGraph("#main", nodes, edges, true, null, "Combined");
+        renderGraph("#rich", rich_nodes, [], false, "#ff7f0e", "Rich");
+        renderGraph("#sparse", sparse_nodes, [], false, "#1f77b4", "Sparse");
+      }).catch(err => console.error("Load error:", err));
+    }
+
+    function renderGraph(id, nodes, edges, withEdges = false, color = null, label = "") {
+      const svg = d3.select(id);
+      svg.selectAll("*").remove();
+      const width = svg.node().clientWidth;
+      const height = svg.node().clientHeight;
+      const group = svg.append("g");
+
+      svg.call(d3.zoom()
+        .scaleExtent([0.5, 10])
+        .on("zoom", event => group.attr("transform", event.transform))
+      );
+
+      const extentX = d3.extent(nodes, d => d.x);
+      const extentY = d3.extent(nodes, d => d.y);
+
+      const x = d3.scaleLinear()
+        .domain(extentX)
+        .range([0, width]);
+      const y = d3.scaleLinear()
+        .domain(extentY)
+        .range([height, 0]);
+
+      // Add label inside SVG
+      svg.append("text")
+        .attr("x", 10)
+        .attr("y", 20)
+        .attr("font-size", "16px")
+        .attr("font-family", "sans-serif")
+        .attr("fill", "#333")
+        .text(label);
+
+      if (withEdges) {
+        const link = group.append("g")
+          .attr("class", "links")
+          .selectAll("line")
+          .data(edges)
+          .join("line")
+          .attr("x1", d => x(d.source.x))
+          .attr("y1", d => y(d.source.y))
+          .attr("x2", d => x(d.target.x))
+          .attr("y2", d => y(d.target.y))
+          .attr("stroke", "#999")
+          .attr("stroke-width", 1)
+          .attr("stroke-opacity", 0.2);
+
+        const node = group.append("g")
+          .attr("class", "nodes")
+          .selectAll("circle")
+          .data(nodes)
+          .join("circle")
+          .attr("r", d => d.type === "rich" ? 3 : 2)
+          .attr("fill", d => d.type === "rich" ? "#ff7f0e" : "#1f77b4")
+          .attr("cx", d => x(d.x))
+          .attr("cy", d => y(d.y))
+          .on("mouseover", function (event, d) {
+            d3.select(this).attr("stroke", "black").attr("stroke-width", 2);
+            link.attr("stroke", l => (l.source === d || l.target === d) ? "red" : "#999")
+                .attr("stroke-opacity", l => (l.source === d || l.target === d) ? 1 : 0.1);
+            node.attr("fill-opacity", n =>
+              n === d || edges.some(l =>
+                (l.source === d && l.target === n) || (l.target === d && l.source === n)) ? 1 : 0.1);
+          })
+          .on("mouseout", function () {
+            d3.select(this).attr("stroke", null);
+            link.attr("stroke", "#999").attr("stroke-opacity", 0.6);
+            node.attr("fill-opacity", 1);
+          });
+      } else {
+        group.selectAll("circle")
+          .data(nodes)
+          .join("circle")
+          .attr("r", 2)
+          .attr("fill", color || "#ccc")
+          .attr("cx", d => x(d.x))
+          .attr("cy", d => y(d.y));
+      }
+    }
+
+    update(); // initial load
+  </script>
+
+</body>
+</html>
