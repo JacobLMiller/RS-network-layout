@@ -1,3 +1,10 @@
+
+figures/
+json_data/
+matrices/
+pickle/
+*.pdf 
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
