@@ -1,6 +1,5 @@
 from embed.common_dist import UnionGraph
-from embed.two_layer_naive import box_procrustes_layout
-from embed.two_layer_fructermann import two_layer_layout
+from embed.independent import box_procrustes_layout
 from embed._utils import read_json_reprsentation
 from embed.poster_method import Poster
 
