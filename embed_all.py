@@ -36,6 +36,7 @@ if __name__ == "__main__":
             'Union_UMAP' : lambda G : UnionGraph(G, **attrs).dim_reduction('UMAP'),
             'Independent_R' : lambda G : box_procrustes_layout(G, transform_author=True, **attrs),
             'Independent_S' : lambda G : box_procrustes_layout(G, transform_author=False, **attrs),
+            'Naive_FR': nx.spring_layout
         }
 
         for name, algo in pos_layouts.items():

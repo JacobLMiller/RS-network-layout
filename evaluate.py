@@ -76,7 +76,8 @@ def get_ideal_locs(G,gname):
 
 if __name__ == "__main__": 
     import tqdm
-    for graph in os.listdir("outputs"):
+    embeddings_dir = "outputs"
+    for graph in os.listdir(embeddings_dir):
         if not os.path.isdir("matrices"):
             os.mkdir("matrices")
         if not os.path.exists(f"matrices/{graph}_all.npy"):
