@@ -1,7 +1,6 @@
 import networkx as nx 
 import json
-
-
+import csv
 
 
 def _convert_vispub(G):
