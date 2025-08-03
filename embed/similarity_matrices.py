@@ -13,7 +13,10 @@ from ._utils import getType
 
 def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abstract_key: str='data', paper_type: str='rich', verbose=True):
     """
-    Extract Paper node and create word embedding by training sentence transformer on abstract and reduce the embedding to 2 dimensions
+    Extract Paper node and create word embedding by training sentence transformer on abstract and reduce the embedding to 2 dimensions.
+
+    Caches sentence-to-vector mapping in pickle/{G.name}_emb_map.pkl to prevent unnecessary recalculation. If there is an error upon updating
+    the graph, try deleting the file as it is most probably outdated.
 
     Parameters
     ----------
@@ -43,12 +46,16 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
 
     # Get abstracts from Papers
     abstracts = set()
-    for node, data in Papers.nodes(data=True):
-        sentences = sent_tokenize(data[abstract_key])
-        data['sentences'] = sentences
+    for node, node_data in Papers.nodes(data=True):
+        abstract = node_data[abstract_key]
+        if not isinstance(abstract, list):
+            abstract = [abstract]
+            
+        sentences = sent_tokenize(node_data[abstract_key])
+        node_data['sentences'] = sentences
         abstracts.update(sentences)
 
-    if os.path.exists(f"pickle/{gname}.pkl"): 
+    if os.path.exists(f"pickle/{gname}_emb_map.pkl"): 
         with open(f"pickle/{gname}.pkl", 'rb') as fdata:
             embed_map = pickle.load(fdata)
     else:
@@ -62,7 +69,7 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
         if not os.path.isdir("pickle"): 
             os.mkdir("pickle")
         if gname: 
-            with open(f"pickle/{gname}.pkl", 'wb') as fdata:
+            with open(f"pickle/{gname}_emb_map.pkl", 'wb') as fdata:
                 pickle.dump(embed_map,fdata)
 
 
@@ -70,16 +77,16 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
     if ret_emb:
         X = np.zeros( (Papers.number_of_nodes(), 384) )
 
-        for i,(node,data) in enumerate(Papers.nodes(data=True)):
-            myvec = sum(embed_map[w] for w in data['sentences']) / len(data['sentences']) if data['sentences'] else np.zeros(384) # average sentence vector, all-MiniLM-L6-v2 transformer encodes to 384 dimensiosn
+        for i,(node,node_data) in enumerate(Papers.nodes(data=True)):
+            myvec = sum(embed_map[w] for w in node_data['sentences']) / len(node_data['sentences']) if node_data['sentences'] else np.zeros(384) # average sentence vector, all-MiniLM-L6-v2 transformer encodes to 384 dimensiosn
             X[i] = myvec
 
         return X
     
     else:
         node_to_vec = dict()
-        for node,data in Papers.nodes(data=True):
-            myvec = sum(embed_map[w] for w in data['sentences']) / len(data['sentences']) if data['sentences'] else np.zeros(384) # average sentence vector
+        for node,node_data in Papers.nodes(data=True):
+            myvec = sum(embed_map[w] for w in node_data['sentences']) / len(node_data['sentences']) if node_data['sentences'] else np.zeros(384) # average sentence vector
             node_to_vec[node] = myvec
         return node_to_vec
 
@@ -132,42 +139,57 @@ def embed_papers_by_keywords(G: nx.classes.graph.Graph, ret_emb: bool= True, key
         return node_to_vec
 
 
-def jaccard_coathorship_similarity(G: nx.classes.graph.Graph, ret_nodelist:bool=False, author_type:str='Author') -> np.ndarray | tuple[np.ndarray, list[str]]:
+def jaccard_coathorship_similarity(G: nx.classes.graph.Graph, ret_nodelist:bool=False, sparse_type:str='sparse') -> np.ndarray | tuple[np.ndarray, list[str]]:
     """
-    Returns a similariy matrix between the authors of the graph using the jaccard index of co-authored papers
+    Returns a similariy matrix between the sparse nodes of the graph using the jaccard index of neighboring rich nodes
+
+    Caches matrix and node order in pickle/{G.name}_jac.pkl to prevent unnecessary recalculation. If a previously calculated graph
+    was replaced by a new graph of the same name, this pickle file should be deleted as it is outdated.
     
     Parameters
     ----------
     
     G : nx.classes.graph.Graph
-        Bipartite graph with Author nodes ('type' == 'Author') and Paper nodes ('type' == 'Paper')
+        Bipartite graph with sparse nodes ('type' == sparsetype) and rich nodes
 
     ret_nodelist : bool
         If False, simply returns matrix
         If True, returns tuple (mat, nodelist) where mat is the similarity matrix and nodelist is node order of mat
 
-    author_type : str
-        Name of type of author nodes (i.e. G.nodes[node]['type'] == author_type)
+    sparse_type : str
+        Name of type of sparse nodes (i.e. G.nodes[node]['type'] == sparse_type)
 
     """
-    authors = getType(G, nodetype=author_type).nodes()
+    from sklearn.metrics import pairwise_distances
 
-    jac_matrix = list()
+    gname = G.graph['name'] if 'name' in G.graph else ""
 
-    for node1 in authors:
-        row = list()
-        for node2 in authors:
-            nbrs1 = set(G[node1])
-            nbrs2 = set(G[node2])
-            jaccard = len(nbrs1 & nbrs2) / len(nbrs1 | nbrs2)
-            row.append(jaccard)
-        jac_matrix.append(row)
-
-    np_matrix = np.array(jac_matrix)
-    if ret_nodelist:
-        return np_matrix, list(authors)
+    if os.path.exists(f"pickle/{gname}_jac.pkl"): 
+        with open(f"pickle/{gname}.pkl", 'rb') as fdata:
+            jac_matrix, sparse_nodes = pickle.load(fdata)
     else:
-        return np_matrix
+        node_list = list(G.nodes())
+        node_index = {node: i for i, node in enumerate(node_list)}
+
+        sparse_nodes = [n for n in G.nodes() if G.nodes[n].get("type") == sparse_type]
+        sparse_indices = [node_index[n] for n in sparse_nodes]
+        rich_indices = [i for i in range(len(node_list)) if i not in sparse_indices]
+
+        A = nx.to_numpy_array(G, nodelist=node_list, dtype=bool)
+        sub_A = A[sparse_indices][:, rich_indices]
+
+        jac_matrix = 1 - pairwise_distances(sub_A, metric='jaccard')
+
+        if not os.path.isdir("pickle"): 
+            os.mkdir("pickle")
+        if gname: 
+            with open(f"pickle/{gname}_jac.pkl", 'wb') as fdata:
+                pickle.dump((jac_matrix, sparse_nodes),fdata)
+
+    if ret_nodelist:
+        return jac_matrix, sparse_nodes
+    else:
+        return jac_matrix
 
 def graph_theoretic_dist(G: nx.classes.graph.Graph, paper_type='Paper', author_type='Author', node_order=None):
     
@@ -187,19 +209,4 @@ def graph_theoretic_dist(G: nx.classes.graph.Graph, paper_type='Paper', author_t
     paper_to_auth_dist[is_inf] = max_finite_dist
 
     return paper_to_auth_dist
-    
-
-    # is_author = np.array([data['type'] == 'Author' for _, data in G.nodes(data=True)])
-    # full_false = np.full(is_author, False)
-    # is_paper_to_author = np.array([is_author if data['type'] == 'Paper' else full_false for _, data in G.nodes(data=True)])
-
-    # paper_to_auth_simi = dist[is_paper_to_author].reshape(getPapers(G).number_of_nodes(), getAuthors(G).number_of_nodes())
-    
-    # is_inf = paper_to_auth_simi == np.inf
-    # max_finit_dist = paper_to_auth_simi[~is_inf].max()
-    # paper_to_auth_simi[~is_inf] = max_finit_dist - paper_to_auth_simi[~is_inf]
-    # paper_to_auth_simi[is_inf] = 0
-
-
-    # return paper_to_auth_simi
 
