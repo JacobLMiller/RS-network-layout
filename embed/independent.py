@@ -71,7 +71,7 @@ def procrustes_layout(
     Papers = nx.from_numpy_array(nn, nodelist=paper_list)
     paper_pos = nx.spring_layout(Papers)
 
-    auth_jac_emb, author_list = jaccard_coathorship_similarity(G, ret_nodelist=True, author_type=author_type)
+    auth_jac_emb, author_list = jaccard_coathorship_similarity(G, ret_nodelist=True, sparse_type=author_type)
     Authors = nx.from_numpy_array(auth_jac_emb, nodelist=author_list)
     author_pos = nx.spring_layout(Authors)
 
@@ -124,7 +124,11 @@ def box_procrustes_layout(
     embed_papers_by: str='abstract', # either 'abstract' or 'keywords'
     paper_embed_data_loc: str='Abstract',
     transform_author: bool=True, # if False, gets GM 
+    verbose: int = 0,
 ):
+    if verbose > 5:
+        print(f"Running box procrustes layout with transform_author={transform_author}")
+
     if embed_papers_by == 'abstract' or embed_papers_by == "data":
         paper_embed_method = embed_papers_by_abstract
     elif embed_papers_by == 'keywords':
@@ -140,9 +144,15 @@ def box_procrustes_layout(
     Papers = nx.from_numpy_array(nn, nodelist=paper_list)
     paper_pos = nx.spring_layout(Papers)
 
-    auth_jac_emb, author_list = jaccard_coathorship_similarity(G, ret_nodelist=True, author_type=author_type)
+    if verbose:
+        print("Created rich part.")
+
+    auth_jac_emb, author_list = jaccard_coathorship_similarity(G, ret_nodelist=True, sparse_type=author_type)
     Authors = nx.from_numpy_array(auth_jac_emb, nodelist=author_list)
     author_pos = nx.spring_layout(Authors)
+
+    if verbose:
+        print("Created sparse part.")
 
     # Get embeddings
     pos1, pos2 = (paper_pos, author_pos) if transform_author else (author_pos, paper_pos)

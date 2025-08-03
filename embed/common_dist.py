@@ -31,15 +31,16 @@ class UnionGraph():
     paper_embed_data_loc : 
         Where is keyword or abstract data of paper node located
     """
-    def __init__(self, G: nx.classes.graph.Graph, paper_type:str='Paper', author_type:str='Author', embed_papers_by:str='abstract', paper_embed_data_loc='Abstract'):
+    def __init__(self, G: nx.classes.graph.Graph, paper_type:str='Paper', author_type:str='Author', embed_papers_by:str='abstract', paper_embed_data_loc='Abstract', verbose: int = 0):
         self.G = G
         self.paper_type = paper_type
         self.author_type = author_type
         self.embed_papers_by = embed_papers_by
         self.paper_embed_data_loc = paper_embed_data_loc
+        self.verbose = verbose
 
     
-    def _paper_sim(self, n_neighbors=15, mode='connectivity'):
+    def _paper_sim(self, n_neighbors=15, mode='connectivity',):
         """
         Returns
         -------
@@ -60,6 +61,9 @@ class UnionGraph():
 
         nn = nn + nn.T
         nn = MinMaxScaler().fit_transform(nn)
+
+        if self.verbose > 1:
+            print("Created distance matrix of rich emb.")
         
         return paper_list, nn
     
@@ -97,8 +101,11 @@ class UnionGraph():
             for _, _, data in Papers.edges(data=True):
                 data['relation'] = 'p2p'
 
+        if self.verbose:
+            print("Created rich graph")
+
         # Create Authors graph
-        auth_jac_emb, author_list = jaccard_coathorship_similarity(self.G, ret_nodelist=True, author_type=self.author_type)
+        auth_jac_emb, author_list = jaccard_coathorship_similarity(self.G, ret_nodelist=True, sparse_type=self.author_type)
         np.fill_diagonal(auth_jac_emb, 0) # No self-loop edges
         auth_jac_emb = MinMaxScaler().fit_transform(auth_jac_emb)
         auth_jac_emb *= author_weight
@@ -107,12 +114,18 @@ class UnionGraph():
             for _, _, data in Authors.edges(data=True):
                 data['relation'] = 'a2a'
 
+        if self.verbose:
+            print("Created sparse graph")
+
         # Create union graph
         union_graph = nx.compose_all([self.G, Papers, Authors])
         if label_edges:
             for _, _, data in union_graph.edges(data=True):
                 if 'relation' not in data:
                     data['relation'] = 'p2a'
+
+        if self.verbose:
+            print("Created union graph")                    
         return union_graph
 
     def dim_reduction(self, alg='UMAP', pca_dim=50):
@@ -142,11 +155,20 @@ class UnionGraph():
         p2p_vec = PCA(n_components=pca_dim).fit_transform(p2p_vec)
         p2p_dist = pairwise_distances(p2p_vec)
 
-        jac_sim_mat, author_nodes = jaccard_coathorship_similarity(self.G, ret_nodelist=True, author_type=self.author_type)
+        if self.verbose:
+            print("Distance matrix: Created rich-rich block.")
+
+        jac_sim_mat, author_nodes = jaccard_coathorship_similarity(self.G, ret_nodelist=True, sparse_type=self.author_type)
         a2a_dist = 1 - jac_sim_mat
+
+        if self.verbose:
+            print("Distance matrix: Created sparse-sparse block.")
 
         node_order = paper_nodes + author_nodes
         p2a_dist = graph_theoretic_dist(self.G, paper_type=self.paper_type, author_type=self.author_type, node_order=node_order)
+
+        if self.verbose:
+            print("Distance matrix: Created rich-sparse block")
     
         # Normalize
         p2p_dist, a2a_dist, p2a_dist = [MinMaxScaler().fit_transform(X) for X in [p2p_dist, a2a_dist, p2a_dist]]
@@ -157,6 +179,9 @@ class UnionGraph():
         AB = np.concatenate((p2p_dist, p2a_dist), axis=1)
         CD = np.concatenate((p2a_dist.T, a2a_dist), axis=1)
         full_dist = np.concatenate((AB, CD), axis=0)
+
+        if self.verbose:
+            print("Distance matrix created. Running dimension reduction.")
 
         Y = dimension_reduction(full_dist, alg, X_is_dist=True)
 

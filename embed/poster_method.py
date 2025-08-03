@@ -9,12 +9,13 @@ from scipy.sparse import coo_matrix
 
 
 class Poster():
-    def __init__(self, G: nx.classes.graph.Graph, paper_type:str='rich', author_type:str='sparse', embed_papers_by:str='data', paper_embed_data_loc='data'):
+    def __init__(self, G: nx.classes.graph.Graph, paper_type:str='rich', author_type:str='sparse', embed_papers_by:str='data', paper_embed_data_loc='data', verbose=0):
         self.G = G
         self.paper_type = paper_type
         self.author_type = author_type
         self.embed_papers_by = embed_papers_by
         self.paper_embed_data_loc = paper_embed_data_loc
+        self.verbose = verbose
 
     def get_author_influence(self,dims=50):
 
@@ -32,7 +33,7 @@ class Poster():
 
         return author_influence
 
-    def layout(self, pca_dim=50):
+    def layout(self, pca_dim=50,):
         """
         The Paper nodes are embedded by creating a sentence embedding of the Paper nodes (trained on either their keywords or on the abstract),
         and creating a 2D projection using UMAP. The Author nodes are placed in the geometric center of the Paper nodes that they share an
@@ -42,20 +43,27 @@ class Poster():
         high_dim_emb = np.array(list(paper_emb_pos.values()))
         word_influence = PCA(n_components=pca_dim).fit_transform(high_dim_emb)
 
-        author_influence = self.get_author_influence()
+        # author_influence = self.get_author_influence()
 
         # X = np.hstack((word_influence,author_influence))
         X = word_influence
-        print(X)
-        print(X.shape)
+        
+        if self.verbose:
+            print(f"Created high-dimensional rich embedding. Dimensions= {X.shape}")
 
         paper_Y = dimension_reduction(X, 'UMAP', False)
         paper_pos = dict(zip(paper_emb_pos.keys(), paper_Y))
+
+        if self.verbose:
+            print(f"Dimension reduction complete. Rich nodes positioned.")
         
         author_nodes = [node for node, nodetype in self.G.nodes(data='type') if nodetype == self.author_type]
         author_pos = {
             node : np.mean([paper_pos[paper_node] for paper_node in self.G[node]], 0) for node in author_nodes
         }
+
+        if self.verbose:
+            print("Sparse node positioned.")
 
         return paper_pos | author_pos
 
