@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     for graphname in tqdm(os.listdir("json_data")):
         graphname = graphname.replace(".json", "")
-        if not os.path.isdir(f"outputs/{graphname}"): os.mkdir(f"outputs/{graphname}")
+        os.makedirs(f"outputs/{graphname}", exist_ok=True)
 
         with open(f"json_data/{graphname}.json", 'r') as fdata:
             data = json.load(fdata)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         for name, algo in pos_layouts.items():
             pos = algo(G)
             for v in G.nodes():
-                print(G.nodes[v], pos[v])
+                # print(G.nodes[v], pos[v])
 
                 G.nodes[v]['x'] = float(pos[v][0])
                 G.nodes[v]['y'] = float(pos[v][1])
@@ -51,5 +51,3 @@ if __name__ == "__main__":
             
             with open(f"outputs/{graphname}/{name}" + ".json", 'w') as fdata:
                 json.dump(jsdata, fdata,indent=4)
-
-    

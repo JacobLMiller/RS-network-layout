@@ -57,7 +57,7 @@ def get_rich_dists(G):
 
 
 def get_sparse_dists(G):
-    return 1 - jaccard_coathorship_similarity(G,author_type='sparse')
+    return 1 - jaccard_coathorship_similarity(G,sparse_type='sparse')
 
 def get_ideal_locs(G,gname):
     G.graph['name'] = gname 
