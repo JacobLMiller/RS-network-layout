@@ -40,6 +40,7 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
       with the node and its corresponding vector as key-value pairs.
     """
     gname = G.graph['name'] if 'name' in G.graph else ""
+    embed_map_file = f"pickle/{gname}_emb_map.pkl"
     _G = deepcopy(G)
     
     Papers = getType(_G, nodetype=paper_type)
@@ -55,8 +56,8 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
         node_data['sentences'] = sentences
         abstracts.update(sentences)
 
-    if os.path.exists(f"pickle/{gname}_emb_map.pkl"): 
-        with open(f"pickle/{gname}.pkl", 'rb') as fdata:
+    if os.path.exists(embed_map_file): 
+        with open(embed_map_file, 'rb') as fdata:
             embed_map = pickle.load(fdata)
     else:
         list_abstracts = list(abstracts)
@@ -69,7 +70,7 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
         if not os.path.isdir("pickle"): 
             os.mkdir("pickle")
         if gname: 
-            with open(f"pickle/{gname}_emb_map.pkl", 'wb') as fdata:
+            with open(embed_map_file, 'wb') as fdata:
                 pickle.dump(embed_map,fdata)
 
 
@@ -163,9 +164,10 @@ def jaccard_coathorship_similarity(G: nx.classes.graph.Graph, ret_nodelist:bool=
     from sklearn.metrics import pairwise_distances
 
     gname = G.graph['name'] if 'name' in G.graph else ""
+    jac_pkl_file = f"pickle/{gname}_jac.pkl"
 
-    if os.path.exists(f"pickle/{gname}_jac.pkl"): 
-        with open(f"pickle/{gname}.pkl", 'rb') as fdata:
+    if os.path.exists(jac_pkl_file): 
+        with open(jac_pkl_file, 'rb') as fdata:
             jac_matrix, sparse_nodes = pickle.load(fdata)
     else:
         node_list = list(G.nodes())
@@ -183,7 +185,7 @@ def jaccard_coathorship_similarity(G: nx.classes.graph.Graph, ret_nodelist:bool=
         if not os.path.isdir("pickle"): 
             os.mkdir("pickle")
         if gname: 
-            with open(f"pickle/{gname}_jac.pkl", 'wb') as fdata:
+            with open(jac_pkl_file, 'wb') as fdata:
                 pickle.dump((jac_matrix, sparse_nodes),fdata)
 
     if ret_nodelist:
