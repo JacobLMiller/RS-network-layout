@@ -46,21 +46,26 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
     Papers = getType(_G, nodetype=paper_type)
 
     # Get abstracts from Papers
-    abstracts = set()
+    data_sentences = set()
     for node, node_data in Papers.nodes(data=True):
-        abstract = node_data[abstract_key]
-        if not isinstance(abstract, list):
-            abstract = [abstract]
+        rich_data = node_data[abstract_key]
+        if isinstance(rich_data, str):
+            rich_data = [rich_data]
+        
+        node_data['sentences'] = []
+        # NOTE rich_data needs to be the same length for all nodes in order to work
+        # TODO Error handling is required when rich_data is not the same length for all nodes
+        for rich_data_i in rich_data:
+            sentences_i = sent_tokenize(rich_data_i)
+            node_data['sentences'].append(sentences_i)
+            data_sentences.update(sentences_i)
             
-        sentences = sent_tokenize(node_data[abstract_key])
-        node_data['sentences'] = sentences
-        abstracts.update(sentences)
 
     if os.path.exists(embed_map_file): 
         with open(embed_map_file, 'rb') as fdata:
             embed_map = pickle.load(fdata)
     else:
-        list_abstracts = list(abstracts)
+        list_abstracts = list(data_sentences)
         model = SentenceTransformer('all-MiniLM-L6-v2')
         embeddings = model.encode(list_abstracts,show_progress_bar=verbose)
         if verbose: print(f"Size of embeddings: {embeddings.shape}")
@@ -73,23 +78,20 @@ def embed_papers_by_abstract(G: nx.classes.graph.Graph, ret_emb: bool= True, abs
             with open(embed_map_file, 'wb') as fdata:
                 pickle.dump(embed_map,fdata)
 
-
+    node_to_vec = dict()
+    for (node, node_sents) in Papers.nodes(data='sentences'):
+        vec_is = []
+        for sentences_i in node_sents:
+            vec_i = sum(embed_map[w] for w in sentences_i) / len(sentences_i) if sentences_i else np.zeros(384) # average sentence vector, all-MiniLM-L6-v2 transformer encodes to 384 dimensiosn
+            vec_is.append(vec_i)
+        vec = np.concatenate(vec_is)
+        node_to_vec[node] = vec
 
     if ret_emb:
-        X = np.zeros( (Papers.number_of_nodes(), 384) )
-
-        for i,(node,node_data) in enumerate(Papers.nodes(data=True)):
-            myvec = sum(embed_map[w] for w in node_data['sentences']) / len(node_data['sentences']) if node_data['sentences'] else np.zeros(384) # average sentence vector, all-MiniLM-L6-v2 transformer encodes to 384 dimensiosn
-            X[i] = myvec
-
-        return X
-    
+        return np.array(list(node_to_vec.values()))
     else:
-        node_to_vec = dict()
-        for node,node_data in Papers.nodes(data=True):
-            myvec = sum(embed_map[w] for w in node_data['sentences']) / len(node_data['sentences']) if node_data['sentences'] else np.zeros(384) # average sentence vector
-            node_to_vec[node] = myvec
         return node_to_vec
+
 
 def embed_papers_by_keywords(G: nx.classes.graph.Graph, ret_emb: bool= True, keywords_key: str='seminar_keywords', paper_type: str='Paper'):
     Papers = getType(G, nodetype=paper_type)
