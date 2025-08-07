@@ -1,5 +1,6 @@
 from load_datasets.convert_to_json import convert_dagstuhl, convert_vast, convert_vispub
 from load_datasets.convert_netflix_to_json import convert_netflix
+from load_datasets.convert_instacart_to_json import convert_instacart
 import os 
 
 def main():
@@ -16,6 +17,8 @@ def main():
     convert_vast()
 
     convert_netflix(target_dir)
+
+    convert_instacart(target_dir)
     
 if __name__ == '__main__':
     main()
