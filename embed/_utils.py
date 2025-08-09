@@ -10,7 +10,11 @@ def read_json_reprsentation(jsongraph,gname):
 
     G.add_nodes_from([(v['id'], v | {'type': "sparse"}) for v in jsongraph['sparse']])
 
-    G.add_edges_from([(u['id'],v) for u in jsongraph['rich'] for v in u['s_ids']])
+    edges = [(u['id'], v[0], v[1])
+              if isinstance(v, list)
+              else (u['id'], v, 1)
+              for u in jsongraph['rich'] for v in u['s_ids']]
+    G.add_weighted_edges_from(edges)
 
     G.remove_nodes_from(list(nx.isolates(G)))
 
