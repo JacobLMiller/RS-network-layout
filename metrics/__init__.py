@@ -16,7 +16,7 @@ __all__ = [
     "avg_edge_length",
     "avg_nbr_radius",
     "shape_faithfulness",
-    "trustworthiness"
+    "trustworthiness",
     "nbr_radii",
     "neighborhood_preservation", 
     "node_distribution",

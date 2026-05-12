@@ -29,7 +29,7 @@ def neighborhood_preservation(G: nx.classes.graph.Graph, r: int = 1):
 def get_embedding(G: nx.classes.graph.Graph, nodelist):
     coords = []
     for node in nodelist:
-        x, y = G.nodes('x')[node], G.nodes('y')[node]
+        x, y = G.nodes[node]['x'], G.nodes[node]['y']
         coords.append([x,y])
     embedding = np.array(coords)
     return embedding
