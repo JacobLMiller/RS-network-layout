@@ -1,0 +1,117 @@
+{
+    "netflix_graph_1": {
+        "rich": {
+            "Number of Nodes": 3980,
+            "Minimum Degree": 3,
+            "Maximum Degree": 5983,
+            "Degree Std": 1099.7145102553882,
+            "Degree Mean": 641.2143216080402
+        },
+        "sparse": {
+            "Number of Nodes": 6184,
+            "Minimum Degree": 301,
+            "Maximum Degree": 3954,
+            "Degree Std": 174.50647393889568,
+            "Degree Mean": 412.6832147477361
+        },
+        "network": {
+            "Number of Nodes": 10164,
+            "Number of Edges": 2552033,
+            "Number of CCs": 1,
+            "Largest CC": 10164,
+            "Smallest CC": 10164
+        }
+    },
+    "netflix_graph_4": {
+        "rich": {
+            "Number of Nodes": 3824,
+            "Minimum Degree": 3,
+            "Maximum Degree": 7004,
+            "Degree Std": 1377.1195682017628,
+            "Degree Mean": 783.2426778242677
+        },
+        "sparse": {
+            "Number of Nodes": 7320,
+            "Minimum Degree": 301,
+            "Maximum Degree": 3805,
+            "Degree Std": 160.41678210712837,
+            "Degree Mean": 409.1693989071038
+        },
+        "network": {
+            "Number of Nodes": 11144,
+            "Number of Edges": 2995120,
+            "Number of CCs": 1,
+            "Largest CC": 11144,
+            "Smallest CC": 11144
+        }
+    },
+    "instacart": {
+        "rich": {
+            "Number of Nodes": 3271,
+            "Minimum Degree": 3,
+            "Maximum Degree": 4628,
+            "Degree Std": 255.2977015315945,
+            "Degree Mean": 136.23937633751146
+        },
+        "sparse": {
+            "Number of Nodes": 13167,
+            "Minimum Degree": 25,
+            "Maximum Degree": 72,
+            "Degree Std": 8.3129404015626,
+            "Degree Mean": 33.845143160932636
+        },
+        "network": {
+            "Number of Nodes": 16438,
+            "Number of Edges": 445639,
+            "Number of CCs": 1,
+            "Largest CC": 16438,
+            "Smallest CC": 16438
+        }
+    },
+    "netflix_graph_2": {
+        "rich": {
+            "Number of Nodes": 4136,
+            "Minimum Degree": 3,
+            "Maximum Degree": 8248,
+            "Degree Std": 1566.4557546154044,
+            "Degree Mean": 878.2345261121857
+        },
+        "sparse": {
+            "Number of Nodes": 8732,
+            "Minimum Degree": 301,
+            "Maximum Degree": 4117,
+            "Degree Std": 164.99127947348242,
+            "Degree Mean": 415.9846541456711
+        },
+        "network": {
+            "Number of Nodes": 12868,
+            "Number of Edges": 3632378,
+            "Number of CCs": 1,
+            "Largest CC": 12868,
+            "Smallest CC": 12868
+        }
+    },
+    "netflix_graph_3": {
+        "rich": {
+            "Number of Nodes": 3601,
+            "Minimum Degree": 2,
+            "Maximum Degree": 4427,
+            "Degree Std": 859.355574850403,
+            "Degree Mean": 522.3421271868925
+        },
+        "sparse": {
+            "Number of Nodes": 4589,
+            "Minimum Degree": 301,
+            "Maximum Degree": 3579,
+            "Degree Std": 172.80823055874032,
+            "Degree Mean": 409.8831989540205
+        },
+        "network": {
+            "Number of Nodes": 8190,
+            "Number of Edges": 1880954,
+            "Number of CCs": 1,
+            "Largest CC": 8190,
+            "Smallest CC": 8190
+        }
+    }
+}

@@ -8,7 +8,7 @@ from copy import deepcopy
 from sklearn.metrics import pairwise_distances
 from scipy.spatial.distance import pdist
 
-from embed.similarity_matrices import embed_papers_by_abstract, embed_papers_by_keywords, jaccard_coathorship_similarity
+from embed.similarity_matrices import embed_rich_by_abstract, embed_rich_by_keywords, jaccard_coathorship_similarity
 from metrics import neighborhood_radius, SNKL, SNS, NHit, shape_faithfulness, avg_nbr_radius, neighborhood_preservation
 from metrics import node_distribution, angular_resolution, edge_length_variation
 from embed._utils import read_json_reprsentation
@@ -51,7 +51,7 @@ def get_apsp(G):
     return d
 
 def get_rich_dists(G):
-    X = embed_papers_by_abstract(G)
+    X = embed_rich_by_abstract(G)
     
     return pairwise_distances(X)
 
@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
                   
 
-        if not os.isdir("metric_out"): os.mkdir("metric_out")
+        if not os.path.isdir("metric_out"): os.mkdir("metric_out")
         with open(f"metric_out/{graph}.json", 'w') as fdata:
             json.dump(metricdata, fdata,indent=4)
     

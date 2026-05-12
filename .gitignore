@@ -4,6 +4,12 @@ json_data/
 matrices/
 pickle/
 *.pdf 
+json-netflix.json
+movie_titles.csv
+netflix_enriched.csv
+netflix-filtered.graphml
+output.json 
+raw_data/netflix/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
